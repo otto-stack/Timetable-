@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { 
   Calendar, LayoutDashboard, Plus, X, MapPin, AlertTriangle, 
-  Globe, RefreshCw, Users, ShieldCheck, Menu, Settings
+  Globe, RefreshCw, Users, ShieldCheck, Menu, Settings, ShieldAlert
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import * as firestore from 'firebase/firestore';
@@ -11,6 +11,7 @@ import * as firestore from 'firebase/firestore';
 import CalendarView from './components/CalendarView';
 import Dashboard from './components/Dashboard';
 import BookingForm from './components/BookingForm';
+import ManagerView from './components/ManagerView';
 import { Booking, LOCATIONS } from './types';
 
 const { getFirestore, doc, onSnapshot, setDoc } = firestore;
@@ -134,28 +135,29 @@ const AppContent: React.FC = () => {
   );
 
   const addBooking = (newBooking: Booking) => {
-    // 1. Check for impossible time range (End before Start)
     if (newBooking.startTime >= newBooking.endTime) {
       alert("⚠️ 時間設定錯誤：結束時間必須晚於開始時間。");
       return;
     }
-
-    // 2. Check for conflicts in the SAME location
     const hasConflict = bookings.some(b => 
       b.locationId === newBooking.locationId && 
       b.date === newBooking.date && 
       newBooking.startTime < b.endTime && 
       newBooking.endTime > b.startTime
     );
-
     if (hasConflict) {
       alert("⚠️ 此時段已有其他預約，請重新選擇。");
       return;
     }
-
     const updated = [...bookings, newBooking];
     setBookings(updated);
     setIsModalOpen(false);
+    pushUpdateToCloud(updated);
+  };
+
+  const clearMonthBookings = (yearMonth: string) => {
+    const updated = bookings.filter(b => !b.date.startsWith(yearMonth));
+    setBookings(updated);
     pushUpdateToCloud(updated);
   };
 
@@ -207,6 +209,9 @@ const AppContent: React.FC = () => {
             </Link>
             <Link to="/calendar" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${locationPath.pathname === '/calendar' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-600 hover:bg-indigo-50'}`}>
               <Calendar size={20} /> <span className="font-semibold">課室時間表</span>
+            </Link>
+            <Link to="/manager" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${locationPath.pathname === '/manager' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-600 hover:bg-indigo-50'}`}>
+              <ShieldAlert size={20} /> <span className="font-semibold">系統管理</span>
             </Link>
           </nav>
 
@@ -274,6 +279,7 @@ const AppContent: React.FC = () => {
         <Routes>
           <Route path="/" element={<Dashboard bookings={activeBookings} onDelete={id => setPendingDeletionId(id)} locationName={currentLocationName || ''} />} />
           <Route path="/calendar" element={<CalendarView bookings={activeBookings} onDeleteBooking={id => setPendingDeletionId(id)} onAddClick={date => { setSelectedDate(date); setIsModalOpen(true); }} />} />
+          <Route path="/manager" element={<ManagerView bookings={bookings} onClearMonth={clearMonthBookings} />} />
         </Routes>
       </main>
 
@@ -297,9 +303,13 @@ const AppContent: React.FC = () => {
           <Calendar size={22} />
           <span className="text-[10px] font-black uppercase tracking-tighter">時間表</span>
         </Link>
+        <Link to="/manager" className={`flex flex-col items-center gap-1 transition-all ${locationPath.pathname === '/manager' ? 'text-slate-900 scale-110' : 'text-slate-400'}`}>
+          <ShieldAlert size={22} />
+          <span className="text-[10px] font-black uppercase tracking-tighter">管理</span>
+        </Link>
         <button onClick={() => setIsSyncModalOpen(true)} className="flex flex-col items-center gap-1 text-slate-400">
-          <Users size={22} />
-          <span className="text-[10px] font-black uppercase tracking-tighter">同步</span>
+          <Settings size={22} />
+          <span className="text-[10px] font-black uppercase tracking-tighter">設定</span>
         </button>
       </nav>
 
