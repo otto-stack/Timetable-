@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Booking, BookingType, TEACHERS, LOCATIONS } from '../types';
-import { MapPin, Video, Users, Mic, Briefcase, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { MapPin, Video, Users, Mic, Briefcase, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 
 interface BookingFormProps {
   initialDate?: string;
@@ -41,9 +41,16 @@ const BookingForm: React.FC<BookingFormProps> = ({ initialDate, activeLocationId
     setFormData(prev => ({ ...prev, locationId: activeLocationId }));
   }, [activeLocationId]);
 
+  // Validation: End time must be after start time
+  const isInvalidTimeRange = useMemo(() => {
+    return formData.startTime >= formData.endTime;
+  }, [formData.startTime, formData.endTime]);
+
   // Conflict Detection Logic - STRICTLY Filtered by Location
-  // Overlaps in different locations are permitted
   const conflictingBooking = useMemo(() => {
+    // If range itself is invalid, don't bother checking conflicts
+    if (isInvalidTimeRange) return undefined;
+
     return existingBookings.find(b => {
       // Must be SAME location AND SAME date to be a conflict
       if (b.locationId !== formData.locationId || b.date !== formData.date) return false;
@@ -56,13 +63,13 @@ const BookingForm: React.FC<BookingFormProps> = ({ initialDate, activeLocationId
       
       return startA < endB && endA > startB;
     });
-  }, [formData, existingBookings]);
+  }, [formData, existingBookings, isInvalidTimeRange]);
 
   const currentLocation = LOCATIONS.find(l => l.id === formData.locationId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (conflictingBooking) return; 
+    if (conflictingBooking || isInvalidTimeRange) return; 
     if (!formData.title || !formData.teacherId || !formData.locationId) return;
 
     const teacher = TEACHERS.find(t => t.id === formData.teacherId)!;
@@ -84,8 +91,18 @@ const BookingForm: React.FC<BookingFormProps> = ({ initialDate, activeLocationId
 
   return (
     <form onSubmit={handleSubmit} className="p-5 md:p-8 space-y-6 md:space-y-8 bg-white">
-      {/* Dynamic Alert Banner */}
-      {conflictingBooking ? (
+      {/* Alert Banners */}
+      {isInvalidTimeRange ? (
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          <Clock className="text-rose-500 shrink-0 mt-0.5" size={20} />
+          <div>
+            <h4 className="text-sm font-black text-rose-800">無效的時間範圍 (Invalid Range)</h4>
+            <p className="text-xs text-rose-700 font-medium mt-1 leading-relaxed">
+              結束時間必須晚於開始時間。請檢查並修正您的時間設定。
+            </p>
+          </div>
+        </div>
+      ) : conflictingBooking ? (
         <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
           <AlertCircle className="text-rose-500 shrink-0 mt-0.5" size={20} />
           <div>
@@ -212,7 +229,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ initialDate, activeLocationId
             <input 
               type="time" 
               className={`w-full px-4 py-3 md:py-4 rounded-xl md:rounded-2xl border outline-none transition-all font-bold text-slate-700 text-sm ${
-                conflictingBooking ? 'border-rose-300 bg-rose-50 focus:ring-rose-500' : 'border-slate-200 bg-slate-50 focus:ring-indigo-500'
+                (conflictingBooking || isInvalidTimeRange) ? 'border-rose-300 bg-rose-50 focus:ring-rose-500' : 'border-slate-200 bg-slate-50 focus:ring-indigo-500'
               }`}
               value={formData.startTime}
               onChange={e => setFormData({...formData, startTime: e.target.value})}
@@ -223,7 +240,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ initialDate, activeLocationId
             <input 
               type="time" 
               className={`w-full px-4 py-3 md:py-4 rounded-xl md:rounded-2xl border outline-none transition-all font-bold text-slate-700 text-sm ${
-                conflictingBooking ? 'border-rose-300 bg-rose-50 focus:ring-rose-500' : 'border-slate-200 bg-slate-50 focus:ring-indigo-500'
+                (conflictingBooking || isInvalidTimeRange) ? 'border-rose-300 bg-rose-50 focus:ring-rose-500' : 'border-slate-200 bg-slate-50 focus:ring-indigo-500'
               }`}
               value={formData.endTime}
               onChange={e => setFormData({...formData, endTime: e.target.value})}
@@ -242,14 +259,14 @@ const BookingForm: React.FC<BookingFormProps> = ({ initialDate, activeLocationId
         </button>
         <button 
           type="submit"
-          disabled={!!conflictingBooking}
+          disabled={!!conflictingBooking || isInvalidTimeRange}
           className={`flex-[2] px-4 py-4 text-white font-black rounded-xl md:rounded-2xl shadow-xl transition-all uppercase tracking-widest text-[10px] ${
-            conflictingBooking 
+            (conflictingBooking || isInvalidTimeRange)
               ? 'bg-slate-300 cursor-not-allowed shadow-none' 
               : 'bg-indigo-600 shadow-indigo-200 hover:bg-indigo-700 active:scale-95'
           }`}
         >
-          {conflictingBooking ? '時段已被佔用' : 'Confirm Booking'}
+          {isInvalidTimeRange ? '時間無效' : conflictingBooking ? '時段已被佔用' : 'Confirm Booking'}
         </button>
       </div>
     </form>

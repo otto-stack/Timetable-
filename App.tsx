@@ -134,7 +134,13 @@ const AppContent: React.FC = () => {
   );
 
   const addBooking = (newBooking: Booking) => {
-    // Final safety check for conflicts
+    // 1. Check for impossible time range (End before Start)
+    if (newBooking.startTime >= newBooking.endTime) {
+      alert("⚠️ 時間設定錯誤：結束時間必須晚於開始時間。");
+      return;
+    }
+
+    // 2. Check for conflicts in the SAME location
     const hasConflict = bookings.some(b => 
       b.locationId === newBooking.locationId && 
       b.date === newBooking.date && 
@@ -168,7 +174,7 @@ const AppContent: React.FC = () => {
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-slate-50">
       
-      {/* Mobile Header (Only on small screens) */}
+      {/* Mobile Header */}
       <header className="md:hidden flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-sm">C</div>
@@ -187,7 +193,7 @@ const AppContent: React.FC = () => {
         </div>
       </header>
 
-      {/* Desktop Sidebar (Hidden on mobile) */}
+      {/* Desktop Sidebar */}
       <aside className="hidden md:flex w-72 bg-white border-r border-slate-200 flex-col sticky top-0 h-screen">
         <div className="p-8 pb-4 flex-1 overflow-y-auto">
           <div className="flex items-center gap-2 mb-10">
@@ -297,7 +303,7 @@ const AppContent: React.FC = () => {
         </button>
       </nav>
 
-      {/* Modals (Shared for Desktop/Mobile) */}
+      {/* Modals */}
       {isSyncModalOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl p-8 animate-in zoom-in-95 duration-200">
