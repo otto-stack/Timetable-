@@ -134,6 +134,19 @@ const AppContent: React.FC = () => {
   );
 
   const addBooking = (newBooking: Booking) => {
+    // Final safety check for conflicts
+    const hasConflict = bookings.some(b => 
+      b.locationId === newBooking.locationId && 
+      b.date === newBooking.date && 
+      newBooking.startTime < b.endTime && 
+      newBooking.endTime > b.startTime
+    );
+
+    if (hasConflict) {
+      alert("⚠️ 此時段已有其他預約，請重新選擇。");
+      return;
+    }
+
     const updated = [...bookings, newBooking];
     setBookings(updated);
     setIsModalOpen(false);
@@ -307,7 +320,13 @@ const AppContent: React.FC = () => {
               <button onClick={() => setIsModalOpen(false)} className="text-slate-300 hover:text-slate-600 p-2"><X size={28} /></button>
             </div>
             <div className="overflow-y-auto">
-              <BookingForm initialDate={selectedDate} activeLocationId={activeLocationId} onSubmit={addBooking} onCancel={() => setIsModalOpen(false)} />
+              <BookingForm 
+                initialDate={selectedDate} 
+                activeLocationId={activeLocationId} 
+                existingBookings={bookings} 
+                onSubmit={addBooking} 
+                onCancel={() => setIsModalOpen(false)} 
+              />
             </div>
           </div>
         </div>

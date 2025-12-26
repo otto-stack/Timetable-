@@ -81,6 +81,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ bookings, onAddClick, onDel
             const isSelected = selectedDay === dateStr;
             const isToday = date ? getLocalDateString(date) === getLocalDateString(new Date()) : false;
             const dayBookings = date ? getBookingsForDay(dateStr) : [];
+            const bookingCount = dayBookings.length;
 
             return (
               <div 
@@ -97,11 +98,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({ bookings, onAddClick, onDel
                     }`}>
                       {date.getDate()}
                     </span>
-                    {dayBookings.length > 0 && !isSelected && (
-                      <div className="absolute bottom-1.5 flex gap-0.5">
-                        {dayBookings.slice(0, 3).map(b => (
-                          <div key={b.id} className={`w-1 h-1 rounded-full ${TEACHERS.find(t => t.id === b.teacherId)?.color || 'bg-slate-300'}`}></div>
-                        ))}
+                    
+                    {/* Booking Count Label */}
+                    {bookingCount > 0 && (
+                      <div className={`absolute top-1 right-1 px-1.5 py-0.5 rounded-md text-[9px] font-black leading-none shadow-sm animate-in zoom-in duration-300 ${
+                        bookingCount >= 6 ? 'bg-slate-900 text-white' : 
+                        bookingCount >= 3 ? 'bg-indigo-600 text-white' : 
+                        'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                      }`}>
+                        {bookingCount}
                       </div>
                     )}
                   </div>
